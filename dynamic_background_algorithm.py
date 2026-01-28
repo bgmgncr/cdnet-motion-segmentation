@@ -122,9 +122,13 @@ class HybridDynamicBackgroundSubtractor:
         # High flow = more likely foreground
         flow_mask = (flow_magnitude > self.flow_threshold).astype(np.uint8) * 255
         
-        # Combine: keep pixels that are either in initial mask OR have high flow
-        # But prioritize initial mask to avoid noise
-        refined = cv2.bitwise_or(mask, flow_mask)
+        # Instead of just combining, use flow to suppress false positives
+        # If a region has very low flow, it's likely dynamic background
+        very_low_flow = (flow_magnitude < self.flow_threshold * 0.3).astype(np.uint8)
+        
+        # Remove low-flow regions from mask (they're background noise)
+        refined = mask.copy()
+        refined[very_low_flow == 1] = 0
         
         return refined
     
@@ -151,12 +155,8 @@ class HybridDynamicBackgroundSubtractor:
         # Calculate euclidean distance in HSV space
         diff = np.sqrt(np.sum((frame_hsv - bg_hsv) ** 2, axis=2))
         
-        # Threshold to get initial foreground
-        # More permissive in early frames
-        if self.frame_count < self.window_size:
-            threshold = 20
-        else:
-            threshold = 15
+        # Threshold - keep same throughout, allow background model to adapt
+        threshold = 15
         
         initial_mask = (diff > threshold).astype(np.uint8) * 255
         
@@ -167,8 +167,8 @@ class HybridDynamicBackgroundSubtractor:
         # Get optical flow magnitude
         flow_magnitude = self._calculate_optical_flow(frame)
         
-        # Refine mask with optical flow (only after enough frames)
-        if self.frame_count > self.window_size:
+        # Refine mask with optical flow (only after enough frames for stable flow)
+        if self.frame_count > self.window_size * 2:
             refined_mask = self._refine_with_optical_flow(initial_mask, flow_magnitude)
         else:
             refined_mask = initial_mask
