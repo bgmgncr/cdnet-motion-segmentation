@@ -2,6 +2,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 from tqdm import tqdm
+from shadow_algorithm import process_shadow_sequence
 
 
 def clean_mask(mog2_mask: np.ndarray, min_area: int = 300) -> np.ndarray:
@@ -21,7 +22,28 @@ def clean_mask(mog2_mask: np.ndarray, min_area: int = 300) -> np.ndarray:
     return out
 
 
-def process_sequence(frame_paths, out_dir: Path, max_frames: int = 300):
+def process_sequence(frame_paths, out_dir: Path, max_frames: int = 300, category: str = None):
+    """
+    Process a sequence using the appropriate algorithm.
+    
+    For shadow sequences, uses specialized shadow-aware algorithm.
+    For other sequences, uses standard MOG2 background subtraction.
+    
+    Args:
+        frame_paths: List of frame paths
+        out_dir: Output directory
+        max_frames: Maximum frames to process
+        category: Sequence category (optional, used to detect shadow sequences)
+    """
+    # Check if this is a shadow sequence
+    is_shadow = category == "shadow" or "shadow" in str(out_dir).lower()
+    
+    if is_shadow:
+        # Use specialized shadow algorithm
+        process_shadow_sequence(frame_paths, out_dir, max_frames=max_frames, save_shadow_maps=False)
+        return
+    
+    # Standard processing for non-shadow sequences
     out_masks = out_dir / "masks"
     out_overlays = out_dir / "overlays"
     out_masks.mkdir(parents=True, exist_ok=True)

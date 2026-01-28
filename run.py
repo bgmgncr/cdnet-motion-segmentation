@@ -40,7 +40,7 @@ def main():
     print(f"Running on: {args.category}/{seq}")
     print(f"Frames found: {len(frames)}")
 
-    process_sequence(frames, out_dir, max_frames=args.max_frames)
+    process_sequence(frames, out_dir, max_frames=args.max_frames, category=args.category)
 
     print(f"Saved outputs to: {out_dir.resolve()}")
 
