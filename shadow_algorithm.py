@@ -133,9 +133,9 @@ class ShadowAwareBackgroundSubtractor:
         return (shadow_score * 255).astype(np.uint8)
 
 
-def clean_mask(mask: np.ndarray, min_area: int = 300) -> np.ndarray:
+def clean_mask(mask: np.ndarray, min_area: int = 500) -> np.ndarray:
     """
-    Clean foreground mask using morphological operations.
+    Clean foreground mask using enhanced morphological operations.
     
     Args:
         mask: Binary foreground mask
@@ -144,9 +144,20 @@ def clean_mask(mask: np.ndarray, min_area: int = 300) -> np.ndarray:
     Returns:
         Cleaned mask
     """
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
-    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel, iterations=1)
-    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel, iterations=2)
+    # Stronger opening to remove thin noise
+    # Use larger kernel and more iterations
+    kernel_small = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+    kernel_large = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7))
+    
+    # Aggressive opening to remove noise and thin structures
+    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel_small, iterations=2)
+    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel_large, iterations=1)
+    
+    # Closing to fill small holes
+    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel_small, iterations=2)
+    
+    # Apply median blur to the binary mask for smoothing
+    mask = cv2.medianBlur(mask, 5)
     
     # Remove small blobs
     n, labels, stats, _ = cv2.connectedComponentsWithStats(mask, connectivity=8)
@@ -154,6 +165,10 @@ def clean_mask(mask: np.ndarray, min_area: int = 300) -> np.ndarray:
     for i in range(1, n):
         if stats[i, cv2.CC_STAT_AREA] >= min_area:
             out[labels == i] = 255
+    
+    # Final median blur for smoothing edges
+    out = cv2.medianBlur(out, 3)
+    
     return out
 
 
@@ -161,7 +176,7 @@ def process_shadow_sequence(
     frame_paths, 
     out_dir: Path, 
     max_frames: int = 300,
-    min_area: int = 300,
+    min_area: int = 500,
     save_shadow_maps: bool = False
 ):
     """
