@@ -3,6 +3,7 @@ import cv2
 import numpy as np
 from tqdm import tqdm
 from shadow_algorithm import process_shadow_sequence
+from dynamic_background_algorithm import process_dynamic_background_sequence
 
 
 def clean_mask(mog2_mask: np.ndarray, min_area: int = 300) -> np.ndarray:
@@ -27,13 +28,14 @@ def process_sequence(frame_paths, out_dir: Path, max_frames: int = 300, category
     Process a sequence using the appropriate algorithm.
     
     For shadow sequences, uses specialized shadow-aware algorithm.
+    For dynamic background sequences, uses hybrid temporal median + optical flow.
     For other sequences, uses standard MOG2 background subtraction.
     
     Args:
         frame_paths: List of frame paths
         out_dir: Output directory
         max_frames: Maximum frames to process
-        category: Sequence category (optional, used to detect shadow sequences)
+        category: Sequence category (optional, used to select algorithm)
     """
     # Check if this is a shadow sequence
     is_shadow = category == "shadow" or "shadow" in str(out_dir).lower()
@@ -43,7 +45,15 @@ def process_sequence(frame_paths, out_dir: Path, max_frames: int = 300, category
         process_shadow_sequence(frame_paths, out_dir, max_frames=max_frames, save_shadow_maps=False)
         return
     
-    # Standard processing for non-shadow sequences
+    # Check if this is a dynamic background sequence
+    is_dynamic_bg = category == "dynamicBackground" or "dynamicBackground" in str(out_dir).lower()
+    
+    if is_dynamic_bg:
+        # Use hybrid algorithm for dynamic backgrounds
+        process_dynamic_background_sequence(frame_paths, out_dir, max_frames=max_frames)
+        return
+    
+    # Standard processing for baseline, badWeather, PTZ sequences
     out_masks = out_dir / "masks"
     out_overlays = out_dir / "overlays"
     out_masks.mkdir(parents=True, exist_ok=True)
