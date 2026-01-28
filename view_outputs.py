@@ -20,8 +20,20 @@ def main():
     output_dir = Path("outputs") / args.category / args.sequence / args.output_type
     
     if not output_dir.exists():
-        print(f"Output directory not found: {output_dir}")
-        print(f"Available categories: baseline, shadow, badWeather, dynamicBackground, PTZ")
+        print(f"ERROR: Output directory not found: {output_dir}")
+        print(f"\nAvailable categories: baseline, shadow, badWeather, dynamicBackground, PTZ")
+        
+        # List available sequences in the selected category
+        cat_dir = Path("outputs") / args.category
+        if cat_dir.exists():
+            available_seqs = [d.name for d in cat_dir.iterdir() if d.is_dir()]
+            print(f"\nAvailable sequences in '{args.category}':")
+            for seq in sorted(available_seqs):
+                seq_dir = cat_dir / seq
+                has_overlays = (seq_dir / "overlays").exists() and len(list((seq_dir / "overlays").glob("*.png"))) > 0
+                has_masks = (seq_dir / "masks").exists() and len(list((seq_dir / "masks").glob("*.png"))) > 0
+                status = "✓" if (has_overlays or has_masks) else "✗"
+                print(f"  {status} {seq} (overlays: {has_overlays}, masks: {has_masks})")
         return
 
     # Get all frame files
