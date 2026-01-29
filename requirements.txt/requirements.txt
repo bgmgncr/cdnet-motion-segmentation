@@ -1,0 +1,21 @@
+Functional Requirements
+
+1.The system should process sequential video frames from the CDNet 2014 dataset.
+
+2.The system should separate moving regions from static background regions using classical motion-based segmentation techniques.
+
+3.The system should support multiple dataset categories to analyze different motion and illumination conditions.
+
+4.The system should allow different algorithmic approaches to be applied to different dataset categories.
+
+5.The system should apply post-processing techniques to improve the visual consistency of foreground masks.
+
+6.The system should generate foreground masks and overlay images for visual analysis.
+
+Non-Functional Requirements
+
+1.The system should be flexible enough to experiment with different algorithms and parameters.
+
+2.The system should support qualitative evaluation through visual inspection of outputs.
+
+3.The system should be designed for educational purposes to analyze the strengths and limitations of classical approaches.
